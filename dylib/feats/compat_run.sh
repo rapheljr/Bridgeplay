@@ -184,7 +184,9 @@ fi
 
 wine_unix="$CX_ROOT/lib/wine/aarch64-unix"
 WINELOADER="$wine_unix/wine.app/Contents/MacOS/wine"
+[ -x "$WINELOADER" ] || WINELOADER="$wine_unix/wine"
 WINESERVER="$CX_ROOT/bin/wineserver-arm64"
+[ -x "$WINESERVER" ] || WINESERVER="$CX_ROOT/bin/wineserver"
 if [ "$np_flavor" = rosetta ] || [ ! -x "$WINELOADER" ] || [ ! -x "$WINESERVER" ]; then
   wine_unix="$CX_ROOT/lib/wine/x86_64-unix"
   WINELOADER="$wine_unix/wine"
@@ -219,6 +221,9 @@ without_lock_fds() {
 
 # If two WINEDLLPATH directories have the same DLL, Wine uses the one listed first.
 export WINEDLLPATH="$CX_ROOT/lib/wine/x86_64-windows:$wine_unix${WINEDLLPATH:+:$WINEDLLPATH}"
+if [ ! -d "$CX_ROOT/lib/wine/x86_64-windows" ] && [ -d "$CX_ROOT/lib/wine/aarch64-windows" ]; then
+  WINEDLLPATH="$CX_ROOT/lib/wine/aarch64-windows:${WINEDLLPATH#*:}"
+fi
 export PATH="$CX_ROOT/bin:$PATH"
 
 if [ -n "$STEAM_COMPAT_DATA_PATH" ]; then
@@ -694,6 +699,21 @@ select_backend() {
   wanted=""
   backend_from=""
   if [ ! -d "$backend_root" ]; then
+    if [ -f "$wine_unix/compatdb.so" ]; then
+      case "${NOTPROTON_BACKEND:-${CX_GRAPHICS_BACKEND:-${gamefix_backend:-}}}" in
+        wined3d|opengl|wine)
+          backend=wined3d
+          backend_from="WINE_COMPATDB"
+          export WINE_COMPATDB="exe=* dxgi=wined3d d3d9=wined3d${WINE_COMPATDB:+ $WINE_COMPATDB}"
+          ;;
+        *)
+          backend=dxmt
+          backend_from="compatdb default"
+          ;;
+      esac
+      graphics_log "backend=$backend ($backend_from, applied via compatdb)"
+      return 0
+    fi
     backend=dxmt-builtin
     backend_from="legacy engine layout, no lib/notproton-backends"
     if [ -n "${NOTPROTON_BACKEND:-}$gamefix_backend" ]; then
@@ -810,6 +830,7 @@ restore_stock_dll() {
 activate_backend() {
   backend_overrides=""
   [ "$backend" != dxmt-builtin ] || return 0
+  [ ! -f "$wine_unix/compatdb.so" ] || return 0
   managed=$(managed_dlls)
   shipped=""
   case "$backend" in
@@ -2115,11 +2136,13 @@ runner_id=""
 in_template_env() {
   prefix="$1"
   shift
+  wine_pe="$CX_ROOT/lib/wine/x86_64-windows"
+  [ -d "$wine_pe" ] || wine_pe="$CX_ROOT/lib/wine/aarch64-windows"
   without_lock_fds \
     env -i HOME="$HOME" USER="${USER:-}" LOGNAME="${LOGNAME:-}" TMPDIR="${TMPDIR:-/tmp}" \
     LANG="${LANG:-}" LC_ALL="${LC_ALL:-}" \
     PATH="$CX_ROOT/bin:/usr/bin:/bin:/usr/sbin:/sbin" CX_ROOT="$CX_ROOT" CX_HOME="$CX_HOME" \
-    WINEDLLPATH="$CX_ROOT/lib/wine/x86_64-windows:$wine_unix" \
+    WINEDLLPATH="$wine_pe:$wine_unix" \
     WINELOADER="$WINELOADER" WINESERVER="$WINESERVER" WINEPREFIX="$prefix" "$@"
 }
 
@@ -2743,7 +2766,8 @@ verify_runner() {
       echo "=== runner $arch ntdll is not the patched copy, set up the runner in Bridgeplay ===" >> "$log" 2>&1 || true
     fi
   done
-  for arch in i386-windows x86_64-windows "${wine_unix##*/}"; do
+  for arch in i386-windows x86_64-windows aarch64-windows "${wine_unix##*/}"; do
+    [ -d "$CX_ROOT/lib/wine/$arch" ] || continue
     case "$arch" in
       *-unix) name="lsteamclient.so" ;;
       *) name="lsteamclient.dll" ;;
@@ -2769,7 +2793,7 @@ install_lsteamclient_trigger() {
 # before the runner carried it have none. DXMT's dxgi imports winemetal, so without
 # it every D3D11 game fails to start in such a prefix.
 install_runner_builtins() {
-  for pair in x86_64-windows:system32 i386-windows:syswow64; do
+  for pair in x86_64-windows:system32 aarch64-windows:system32 i386-windows:syswow64; do
     arch=${pair%%:*}
     dir="$WINEPREFIX/drive_c/windows/${pair##*:}"
     [ -d "$dir" ] || continue
@@ -3179,7 +3203,7 @@ else
   echo "=== client staged no overlay renderer, overlay disabled ===" >> "$log" 2>&1 || true
 fi
 set -- --args "$shim_exe" "$@"
-for name in $(env | LC_ALL=C sed -nE 's/^(CX_APPLEGPTK_LIBD3DSHARED_PATH|SDL_GAMECONTROLLERCONFIG(_FILE)?|SDL_JOYSTICK_MFI|WINE_LARGE_ADDRESS_AWARE|WINE_CPU_TOPOLOGY|CX_FWD_COMPAT_GL_CTX|Steam[A-Za-z0-9]*|(CX_GRAPHICS|D3DM_|DXMT_|DXVK_|FEX_|MVK_|VKD3D_|STAGING_|MTL_|ROSETTA_)[A-Z0-9_]*|NOTPROTON_FRAMEGEN(_[A-Z]+)?|NOTPROTON_NGX_SIGNER|NOTPROTON_NVAPI_DRIVER|NOTPROTON_DRIVER_VERSION|NOTPROTON_STDOUT_NULL|NOTPROTON_VSYNC|NOTPROTON_HIDE_WINE_EXPORTS|NOTPROTON_ROCKSTAR_DXGI|CX_ACTIVE_GRAPHICS_BACKEND)=.*/\1/p'); do
+for name in $(env | LC_ALL=C sed -nE 's/^(CX_APPLEGPTK_LIBD3DSHARED_PATH|SDL_GAMECONTROLLERCONFIG(_FILE)?|SDL_JOYSTICK_MFI|WINE_COMPATDB|WINE_D3D_CONFIG|WINE_LARGE_ADDRESS_AWARE|WINE_CPU_TOPOLOGY|CX_FWD_COMPAT_GL_CTX|Steam[A-Za-z0-9]*|(CX_GRAPHICS|D3DM_|DXMT_|DXVK_|FEX_|MVK_|VKD3D_|STAGING_|MTL_|ROSETTA_)[A-Z0-9_]*|NOTPROTON_FRAMEGEN(_[A-Z]+)?|NOTPROTON_NGX_SIGNER|NOTPROTON_NVAPI_DRIVER|NOTPROTON_DRIVER_VERSION|NOTPROTON_STDOUT_NULL|NOTPROTON_VSYNC|NOTPROTON_HIDE_WINE_EXPORTS|NOTPROTON_ROCKSTAR_DXGI|CX_ACTIVE_GRAPHICS_BACKEND)=.*/\1/p'); do
   eval "value=\$$name"
   # shellcheck disable=SC2154 # eval assigns value on the line above
   set -- --env "$name=$value" "$@"
