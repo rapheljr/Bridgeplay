@@ -73,6 +73,8 @@ let package = Package(
                 .copy("Resources/detour2-fex-41073.bin"),
                 .copy("Resources/detour32-fex-41073.bin"),
                 .copy("Resources/detour64-fex-41073.bin"),
+                .copy("Resources/detour32-mach9.bin"),
+                .copy("Resources/detour64-mach9.bin"),
             ],
             swiftSettings: [.swiftLanguageMode(.v6)]
         ),

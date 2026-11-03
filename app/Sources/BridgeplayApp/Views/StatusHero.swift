@@ -102,10 +102,10 @@ struct StatusHero: View {
     }
 
     // "winecx-11.17" reads as "WineCX 11.17".
-    static func engineName(_ build: String) -> String {
+    nonisolated static func engineName(_ build: String) -> String {
         let parts = build.split(separator: "-", maxSplits: 1).map(String.init)
         guard parts.count == 2 else { return build }
-        let family = ["winecx": "WineCX", "winehq": "WineHQ"][parts[0]] ?? parts[0]
+        let family = ["winecx": "WineCX", "winehq": "WineHQ", "mach9": "Mach9"][parts[0]] ?? parts[0]
         return "\(family) \(parts[1])"
     }
 }

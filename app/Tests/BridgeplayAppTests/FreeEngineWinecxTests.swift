@@ -50,11 +50,11 @@ struct FreeEngineWinecxTests {
     @Test("Both free engines stay separate builds with their own loaders and tools")
     func coexistsWithWineHQ() throws {
         let free = SupportedRunners.all.filter(\.isFree)
-        #expect(Set(free.map(\.id)) == Set([FreeEngine.current.build] + FreeEngineWinecx.releases.map(\.build)))
+        #expect(Set(free.map(\.id)) == Set([FreeEngine.current.build] + FreeEngineWinecx.releases.map(\.build) + FreeEngineMach9.releases.map(\.build)))
         #expect(Set(free.map(\.loaderSHA256)).count == free.count)
         #expect(Set(free.flatMap(\.tools).map(\.name)).count == free.flatMap(\.tools).count)
-        #expect(Set(FreeEngineWinecx.releases.map(\.bundleName) + [FreeEngine.current.bundleName]).count
-            == FreeEngineWinecx.releases.count + 1)
+        #expect(Set(FreeEngineWinecx.releases.map(\.bundleName) + [FreeEngine.current.bundleName] + FreeEngineMach9.releases.map(\.bundleName)).count
+            == FreeEngineWinecx.releases.count + 1 + FreeEngineMach9.releases.count)
     }
 
     // The license gate keys on the loader hash alone: a CrossOver-shaped tree whose loader

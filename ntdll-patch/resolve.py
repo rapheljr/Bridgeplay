@@ -195,6 +195,26 @@ PINNED = {
          'exports': {'LdrGetDllHandle': 0x7bc2a670, 'LdrLoadDll': 0x7bc28800,
                      'NtProtectVirtualMemory': 0x7bc4c874, 'NtOpenFile': 0x7bc4c6a4,
                      'NtReadFile': 0x7bc4c3d4, 'NtClose': 0x7bc4c464}},
+    # Mach9 0.1.0 (Alexander Theißen)
+    '2be3da1241d2489d08164258b1023e12c0ae16a09f10de38821de54845b4fb92':
+        {'hookRVA': 0x2ee1d, 'stolen': '8b4514a802', 'caveRVA': 0x6b125, 'caveSize': 3803,
+         'resume': 0x2ee22, 'wm': 'edi', 'load_path': -0x3c,
+         'payload': '8aca2eda012e1e8f260d22c3c1dd05244f5b4851a883f85f52cfa009d7c944fd',
+         'exports': {'LdrGetDllHandle': 0x7bc2a630, 'LdrLoadDll': 0x7bc287a0,
+                     'NtProtectVirtualMemory': 0x7bc4d4a0, 'NtOpenFile': 0x7bc4d2d0,
+                     'NtReadFile': 0x7bc4d000, 'NtClose': 0x7bc4d090}},
+    'a189df1dc1d5401f44efa569949a8a299ab35443d164e1bcfa3eb93caceed956':
+        {'caveRVA': 0x101d45, 'caveSize': 58043,
+         'sites': [{'hookRVA': 0x4859c, 'stolen': '1f2003d5', 'resume': 0x485a0,
+                    'wm': 'x27', 'load_path': -0x98},
+                   {'hookRVA': 0xa7eb0, 'stolen': '1f2003d5', 'resume': 0xa7eb4,
+                    'wm': 'x22', 'load_path': -0x80}],
+         'guest': {'LdrLoadDll': 0xa0330, 'LdrGetDllHandle': 0xa0330,
+                   'NtProtectVirtualMemory': 0xed32c},
+         'payload': 'bf9eebe404003d9b244a0391108f10f4c620de786e7b76ecd487bffb30f71866',
+         'exports': {'LdrGetDllHandle': 0x1800437cc, 'LdrLoadDll': 0x180041340,
+                     'NtProtectVirtualMemory': 0x180066cc0, 'NtOpenFile': 0x180066920,
+                     'NtReadFile': 0x180066380, 'NtClose': 0x1800664a0}},
 }
 EXPORTS = ['LdrGetDllHandle', 'LdrLoadDll', 'NtProtectVirtualMemory',
            'NtOpenFile', 'NtReadFile', 'NtClose']

@@ -139,6 +139,13 @@ dappermint/winecx-gptk's GitHub release on the user's Mac. Installers up to
 Bridgeplay 0.7.50 carried it, which is why it was taken out;
 those old installer downloads have been removed from the releases.
 
+Not shipped in the installer: the Mach9 engine (Mach9.dmg from Alexander
+Theißen, https://github.com/athei/mach9, pinned in
+app/Sources/BridgeplayApp/Model/FreeEngineMach9.swift). Mach9 bundles Wine,
+FEX-Emu, DXMT, and supporting libraries for ARM64 macOS. Bridgeplay does not
+redistribute that disk image; the app downloads it straight from upstream
+(https://updates.mach9.app) on the user's Mac.
+
 Written offer for source code: the Corresponding Source of each binary above is
 the upstream source at the commit named above plus the patch or file named next
 to it, all of which are public: winecx at https://github.com/dappermint/winecx,

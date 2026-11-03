@@ -303,7 +303,7 @@ def hexint(v):
 def swift_pins(sources):
     """What the app ships: (patches by payloadResource, clean ntdlls by build id and arch).
 
-    A patch belongs to the build whose NtdllPatcher.byBuild entry or WinecxRelease holds it,
+    A patch belongs to the build whose NtdllPatcher.byBuild entry, WinecxRelease, or Mach9Release holds it,
     and that build's RunnerBuild (rebuilds included) lists the clean ntdlls it patches.
     """
     patches, builds = {}, {}
@@ -328,7 +328,7 @@ def swift_pins(sources):
             for k in re.finditer(r'"([^"]+)":\s*\[', text[table.end():end]):
                 a = table.end() + k.end() - 1
                 owners.append((a, closing(text, a), k.group(1)))
-        for m in re.finditer(r'\bWinecxRelease\(', text):
+        for m in re.finditer(r'\b(?:WinecxRelease|Mach9Release)\(', text):
             a = m.end() - 1
             ver = re.search(r'\bRunnerBuild\(\s*bundleVersion:\s*"([^"]+)"', text[a:closing(text, a)])
             if ver:

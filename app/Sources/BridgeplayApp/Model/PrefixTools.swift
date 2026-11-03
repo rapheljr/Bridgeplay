@@ -162,7 +162,11 @@ enum PrefixTools {
         let wine = layout(runner: runner, flavor: flavor)
         environment["WINELOADER"] = wine.loader.path(percentEncoded: false)
         environment["WINESERVER"] = wine.server.path(percentEncoded: false)
-        environment["WINEDLLPATH"] = "\(root)/lib/wine/x86_64-windows:"
+        let fm = FileManager.default
+        let winArch = !fm.fileExists(atPath: "\(root)/lib/wine/x86_64-windows") && fm.fileExists(atPath: "\(root)/lib/wine/aarch64-windows")
+            ? "aarch64-windows"
+            : "x86_64-windows"
+        environment["WINEDLLPATH"] = "\(root)/lib/wine/\(winArch):"
             + wine.unixDir.path(percentEncoded: false)
         environment["WINEPREFIX"] = prefix.pfx.path(percentEncoded: false)
         environment["WINEMSYNC"] = syncBackend(prefix: prefix)
@@ -189,7 +193,9 @@ enum PrefixTools {
 
         let arm = runner.appending(path: "lib/wine/aarch64-unix")
         let armLoader = arm.appending(path: "wine.app/Contents/MacOS/wine")
-        let armServer = bin.appending(path: "wineserver-arm64")
+        let armServer = executable(bin.appending(path: "wineserver-arm64"))
+            ? bin.appending(path: "wineserver-arm64")
+            : bin.appending(path: "wineserver")
         if flavor == .fex, executable(armLoader), executable(armServer) {
             return WineLayout(loader: armLoader, server: armServer, unixDir: arm)
         }

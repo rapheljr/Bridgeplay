@@ -51,6 +51,11 @@ enum Launch {
             refuseWhileMigrating()
             SetupWinecxCommand.run()
         }
+        if CommandLine.arguments.dropFirst().contains(SetupMach9Command.flag) {
+            AppLog.note("command line: \(SetupMach9Command.flag)")
+            refuseWhileMigrating()
+            SetupMach9Command.run()
+        }
         BridgeplayApp.main()
     }
 

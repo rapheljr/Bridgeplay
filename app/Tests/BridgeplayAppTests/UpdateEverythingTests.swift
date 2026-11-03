@@ -9,17 +9,17 @@ struct UpdateEverythingTests {
     func everythingOutdated() {
         let plan = SystemStatus.updatePlan(
             steam: .outdated(deployed: "3.0.0", bundled: "3.0.1"), hasRunner: true,
-            winecx: .outdated, winehq: .outdated)
-        #expect(plan == [.steamPatch, .winecx, .winehq])
+            winecx: .outdated, winehq: .outdated, mach9: .outdated)
+        #expect(plan == [.steamPatch, .winecx, .winehq, .mach9])
     }
 
     @Test("Engines the user never set up, or that are current, are left alone")
     func onlyOutdatedEngines() {
         let plan = SystemStatus.updatePlan(
-            steam: .installed(version: "3.0.1"), hasRunner: true, winecx: .outdated, winehq: .missing)
+            steam: .installed(version: "3.0.1"), hasRunner: true, winecx: .outdated, winehq: .missing, mach9: .current)
         #expect(plan == [.winecx])
         #expect(SystemStatus.updatePlan(
-            steam: .installed(version: "3.0.1"), hasRunner: true, winecx: .current, winehq: .missing).isEmpty)
+            steam: .installed(version: "3.0.1"), hasRunner: true, winecx: .current, winehq: .missing, mach9: .missing).isEmpty)
     }
 
     @Test("Steam is not patched without a compatibility tool, or when the recorded version is unknown")

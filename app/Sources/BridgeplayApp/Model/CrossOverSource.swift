@@ -159,7 +159,19 @@ enum CrossOverSource {
     }
 
     static func unixLoader(inRoot root: URL) -> URL {
-        root.appending(path: "lib/wine/x86_64-unix/wine")
+        let x86 = root.appending(path: "lib/wine/x86_64-unix/wine")
+        if FileManager.default.fileExists(atPath: x86.path(percentEncoded: false)) {
+            return x86
+        }
+        let armApp = root.appending(path: "lib/wine/aarch64-unix/wine.app/Contents/MacOS/wine")
+        if FileManager.default.fileExists(atPath: armApp.path(percentEncoded: false)) {
+            return armApp
+        }
+        let arm = root.appending(path: "lib/wine/aarch64-unix/wine")
+        if FileManager.default.fileExists(atPath: arm.path(percentEncoded: false)) {
+            return arm
+        }
+        return x86
     }
 
     static func verifyPatchInputs(root: URL, build: RunnerBuild) throws {

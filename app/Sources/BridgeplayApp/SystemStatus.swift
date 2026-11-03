@@ -97,6 +97,9 @@ enum FreeEngineStatus {
         if let release = FreeEngineWinecx.release(build: id) {
             return FreeEngineWinecx.hasBackends(root: install.crossOverRoot, release: release)
         }
+        if let release = FreeEngineMach9.release(build: id) {
+            return FreeEngineMach9.isInstalled(root: install.crossOverRoot, release: release)
+        }
         return false
     }
 
@@ -545,6 +548,20 @@ final class SystemStatus {
             defer { lock.release() }
             try await requireInstallableContent()
             let install = try await FreeEngineWinecx.install { progress($0.label) }
+            let result = try await Task.detached(priority: .userInitiated) {
+                try RunnerSetup.run(from: install, replacingExisting: true) { progress($0.label) }
+            }.value
+            return runnerOutcome(result)
+        }
+    }
+
+    func installMach9Engine() async {
+        guard canInstall else { return }
+        await perform(from: FreeEngineMach9.step) { progress in
+            let lock = try DeploymentContent.acquireInstallationLock()
+            defer { lock.release() }
+            try await requireInstallableContent()
+            let install = try await FreeEngineMach9.install { progress($0.label) }
             let result = try await Task.detached(priority: .userInitiated) {
                 try RunnerSetup.run(from: install, replacingExisting: true) { progress($0.label) }
             }.value

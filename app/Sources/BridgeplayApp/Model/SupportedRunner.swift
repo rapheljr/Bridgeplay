@@ -72,6 +72,10 @@ struct CompatTool: Sendable, Hashable, Identifiable {
         static let fexAvailable = ProcessInfo.processInfo.isOperatingSystemAtLeast(
             OperatingSystemVersion(majorVersion: 26, minorVersion: 0, patchVersion: 0)
         )
+        // Mach9 needs macOS 26.4 or later for cross-arch 4K page / TSO support.
+        static let mach9Available = ProcessInfo.processInfo.isOperatingSystemAtLeast(
+            OperatingSystemVersion(majorVersion: 26, minorVersion: 4, patchVersion: 0)
+        )
     }
 
     let name: String
@@ -98,7 +102,8 @@ enum SupportedRunners {
     static let toolPreference = [
         legacyToolName, "bridgeplay-proton-fex", "bridgeplay-proton-fex-rosetta", "bridgeplay-proton-preview",
         "bridgeplay-proton-fex-41069", "bridgeplay-proton-fex-rosetta-41069", "bridgeplay-proton-preview-41069",
-        "bridgeplay-proton-fex-41073", "bridgeplay-proton-fex-rosetta-41073", "bridgeplay-proton-preview-41073", "bridgeplay-proton-26.3", "bridgeplay-proton-winecx-11.17",
+        "bridgeplay-proton-fex-41073", "bridgeplay-proton-fex-rosetta-41073", "bridgeplay-proton-preview-41073", "bridgeplay-proton-26.3",
+        "bridgeplay-proton-mach9", "bridgeplay-proton-winecx-11.17",
         "bridgeplay-proton-winecx", "bridgeplay-proton-winehq",
     ]
 
@@ -129,7 +134,11 @@ enum SupportedRunners {
                     tool: CompatTool(name: name, flavor: tool.flavor, display: tool.display), build: build.id
                 )
             }
-        }.filter { $0.tool.flavor != .fex || fexAvailable || kept.contains($0.name) }
+        }.filter {
+            if $0.tool.flavor == .fex && !fexAvailable && !kept.contains($0.name) { return false }
+            if FreeEngineMach9.release(build: $0.build) != nil && !CompatTool.Flavor.mach9Available && !kept.contains($0.name) { return false }
+            return true
+        }
         func rank(_ tool: InstalledTool) -> Int {
             toolPreference.firstIndex(of: tool.name) ?? toolPreference.count
         }
@@ -299,7 +308,7 @@ enum SupportedRunners {
                 CompatTool(name: "bridgeplay-proton-fex-rosetta-41073", flavor: .rosetta, display: "CrossOver 2026 10 15-ARM64 - Rosetta"),
             ]
         ),
-    ] + FreeEngineWinecx.runnerBuilds
+    ] + FreeEngineWinecx.runnerBuilds + FreeEngineMach9.runnerBuilds
 
     static func build(loaderSHA256 hash: String) -> RunnerBuild? {
         all.lazy.compactMap { $0.matching(loaderSHA256: hash) }.first

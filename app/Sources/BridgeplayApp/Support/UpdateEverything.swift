@@ -12,13 +12,15 @@ extension SystemStatus {
         case steamPatch
         case winecx
         case winehq
+        case mach9
     }
 
     nonisolated static func updatePlan(
         steam: SteamDeployment,
         hasRunner: Bool,
         winecx: FreeEngineState,
-        winehq: FreeEngineState
+        winehq: FreeEngineState,
+        mach9: FreeEngineState = .missing
     ) -> [UpdatePlan] {
         var plan: [UpdatePlan] = []
         if hasRunner, case .outdated(let deployed, let bundled) = steam, !deployed.isEmpty, deployed != bundled {
@@ -26,6 +28,7 @@ extension SystemStatus {
         }
         if winecx == .outdated { plan.append(.winecx) }
         if winehq == .outdated { plan.append(.winehq) }
+        if mach9 == .outdated { plan.append(.mach9) }
         return plan
     }
 
@@ -37,7 +40,8 @@ extension SystemStatus {
             steam: snapshot.steam,
             hasRunner: snapshot.runner != .none,
             winecx: freeEngineState(FreeEngineWinecx.current.build),
-            winehq: freeEngineState(FreeEngine.current.build)
+            winehq: freeEngineState(FreeEngine.current.build),
+            mach9: CompatTool.Flavor.mach9Available ? freeEngineState(FreeEngineMach9.current.build) : .missing
         ).filter { includingSteamPatch || $0 != .steamPatch }
         guard !plan.isEmpty else { return }
 
@@ -57,6 +61,7 @@ extension SystemStatus {
             case .steamPatch: await requestInstall(unattended: true)
             case .winecx: await installWinecxEngine()
             case .winehq: await installFreeEngine()
+            case .mach9: await installMach9Engine()
             }
         }
     }

@@ -11,10 +11,18 @@ enum RunnerPatcher {
     static let windowsBuiltins = [
         (arch: "i386-windows", name: "lsteamclient.dll"),
         (arch: "x86_64-windows", name: "lsteamclient.dll"),
+        (arch: "aarch64-windows", name: "lsteamclient.dll"),
     ]
 
+    static func windowsBuiltins(in root: URL) -> [(arch: String, name: String)] {
+        let fm = FileManager.default
+        let wine = root.appending(path: "lib/wine")
+        let present = windowsBuiltins.filter { fm.fileExists(atPath: wine.appending(path: $0.arch).path(percentEncoded: false)) }
+        return present.isEmpty ? windowsBuiltins : present
+    }
+
     static func builtins(in root: URL) -> [(arch: String, name: String)] {
-        windowsBuiltins + unixArches(in: root).map { (arch: $0, name: "lsteamclient.so") }
+        windowsBuiltins(in: root) + unixArches(in: root).map { (arch: $0, name: "lsteamclient.so") }
     }
 
     static func unixArches(in root: URL) -> [String] {
@@ -66,8 +74,7 @@ enum RunnerPatcher {
                 continue
             }
 
-            let staged = Digest.sha256IfPresent(
-                bridge.appending(path: "\(builtin.arch)/\(builtin.name)"))
+            let staged = Digest.sha256IfPresent(builtinSource(for: builtin, in: bridge))
             if let staged, staged != installed {
                 wrong.append(String(localized: "\(builtin.arch)/\(builtin.name) is out of date"))
             }
@@ -114,11 +121,25 @@ enum RunnerPatcher {
         return installed
     }
 
+    static func builtinSource(for builtin: (arch: String, name: String), in bridge: URL) -> URL {
+        let direct = bridge.appending(path: "\(builtin.arch)/\(builtin.name)")
+        if FileManager.default.fileExists(atPath: direct.path(percentEncoded: false)) {
+            return direct
+        }
+        if builtin.arch == "aarch64-windows" {
+            let fallback = bridge.appending(path: "x86_64-windows/\(builtin.name)")
+            if FileManager.default.fileExists(atPath: fallback.path(percentEncoded: false)) {
+                return fallback
+            }
+        }
+        return direct
+    }
+
     private static func installBuiltins(root: URL, bridge: URL) throws -> [String] {
         var installed: [String] = []
 
         for builtin in builtins(in: root) {
-            let source = bridge.appending(path: "\(builtin.arch)/\(builtin.name)")
+            let source = builtinSource(for: builtin, in: bridge)
             guard FileManager.default.fileExists(atPath: source.path(percentEncoded: false)) else {
                 throw StepFailure(
                     step: step,

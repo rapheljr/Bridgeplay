@@ -693,6 +693,24 @@ struct StatusView: View {
                 ) { Task { await status.installWinecxEngine() } }
             )
         }
+        if CompatTool.Flavor.mach9Available {
+            let mach9 = status.freeEngineState(FreeEngineMach9.current.build)
+            if mach9 != .current {
+                let outdated = mach9 == .outdated
+                StatusRow(
+                    title: "Mach9 Engine",
+                    value: "\(FreeEngineMach9.current.runner.releaseVersion) with FEX-Emu, KosmicKrisp, and DXMT, "
+                        + "no CrossOver license needed.",
+                    tone: outdated ? .warning : .neutral,
+                    action: StatusAction(
+                        label: outdated ? "Update & Set Up" : "Download & Set Up",
+                        isProminent: rows.isEmpty,
+                        help: "Download Mach9 and set the compatibility tool up from it.",
+                        isEnabled: status.canInstall
+                    ) { Task { await status.installMach9Engine() } }
+                )
+            }
+        }
         if let source = snapshot.gptkSource {
             StatusRow(
                 title: "Game Porting Toolkit",
