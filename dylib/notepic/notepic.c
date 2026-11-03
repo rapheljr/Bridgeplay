@@ -93,6 +93,12 @@ static const char *resolve_trampoline(void) {
         if (access(s_trampoline_path, X_OK) == 0) return s_trampoline_path;
     }
 
+    const char *bundle_path = "/Applications/Bridgeplay.app/Contents/Resources/BridgeplayApp_BridgeplayApp.bundle/Contents/Resources/payload/bridgeplay-epic-trampoline";
+    if (access(bundle_path, X_OK) == 0) {
+        snprintf(s_trampoline_path, sizeof(s_trampoline_path), "%s", bundle_path);
+        return s_trampoline_path;
+    }
+
     const char *app_path = "/Applications/Bridgeplay.app/Contents/Resources/payload/bridgeplay-epic-trampoline";
     if (access(app_path, X_OK) == 0) {
         snprintf(s_trampoline_path, sizeof(s_trampoline_path), "%s", app_path);
