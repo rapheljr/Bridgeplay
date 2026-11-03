@@ -230,9 +230,20 @@ int main(int argc, char *argv[])
 
     /* Determine Target Windows Executable */
     char target_exe[PATH_MAX];
+    int arg_start = 1;
     const char *custom_exe = getenv("BRIDGEPLAY_CUSTOM_EXE");
 
-    if (custom_exe && custom_exe[0] != '\0') {
+    if (argc > 1 && strlen(argv[1]) >= 4 && strcasecmp(argv[1] + strlen(argv[1]) - 4, ".exe") == 0) {
+        snprintf(target_exe, sizeof(target_exe), "%s", argv[1]);
+        arg_start = 2;
+        /* Re-derive install_dir from target_exe */
+        char *target_slash = strrchr(target_exe, '/');
+        if (target_slash) {
+            size_t tlen = (size_t)(target_slash - target_exe);
+            strncpy(install_dir, target_exe, tlen);
+            install_dir[tlen] = '\0';
+        }
+    } else if (custom_exe && custom_exe[0] != '\0') {
         if (custom_exe[0] == '/') {
             snprintf(target_exe, sizeof(target_exe), "%s", custom_exe);
         } else {
@@ -277,7 +288,7 @@ int main(int argc, char *argv[])
     char epic_app_id[PATH_MAX] = {0};
 
     /* Forward incoming Epic arguments (-AUTH_PASSWORD, -epicapp, etc.) */
-    for (int i = 1; i < argc && new_argc < (MAX_ARGS - 8); i++) {
+    for (int i = arg_start; i < argc && new_argc < (MAX_ARGS - 8); i++) {
         if (strcmp(argv[i], "-nobattleye") == 0) {
             has_nobattleye = 1;
         }

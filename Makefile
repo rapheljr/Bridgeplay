@@ -84,7 +84,7 @@ DEPS := $(OBJS:.o=.d)
         anchorcheck callscheck sigdb-fixtures webpatch-fixtures peicon-fixtures panel-behavior app-tests \
         tests-list overlay-shim overlay-shim-install overlay-shim-tests \
         overlay-shim-bench iconmaker icon \
-        appinfo helpers-install ntdll-resolve detourcheck bridge runcheck compatcheck \
+        appinfo helpers-install notepic epic-trampoline ntdll-resolve detourcheck bridge runcheck compatcheck \
         compatsvc-check prefixstate-check shortcutcheck scriptcheck envcheck buildcheck settingscheck routecheck bridgecheck envpasscheck prefixnotecheck powernotecheck exitcheck anticheatcheck launchprogresscheck gamedrivecheck \
         gamefixescheck launchercheck padcheck mappingscheck launch-shell activatecheck stamp-check versioncheck cicheck compat-reported-check FORCE
 
@@ -619,19 +619,31 @@ $(APPINFO): helpers/appinfo.swift
 	@echo "==> Built $@"
 
 EPIC_TRAMPOLINE := $(OUT_DIR)/bridgeplay-epic-trampoline
+NOTEPIC_DYLIB   := $(OUT_DIR)/notepic.dylib
 
 epic-trampoline: $(EPIC_TRAMPOLINE)
+notepic: $(NOTEPIC_DYLIB)
 
 $(EPIC_TRAMPOLINE): helpers/bridgeplay-epic-trampoline.c scripts/build-epic-trampoline.sh
 	@mkdir -p $(OUT_DIR)
 	sh scripts/build-epic-trampoline.sh
 	@echo "==> Built $@"
 
-helpers-install: $(ICONMAKER) $(APPINFO) $(EPIC_TRAMPOLINE)
+$(NOTEPIC_DYLIB): dylib/notepic/notepic.c $(DOBBY_LIBS)
+	@mkdir -p $(OUT_DIR)
+	$(CC) -dynamiclib -arch arm64 -mmacosx-version-min=$(MIN_VER) \
+		-Idylib -Ivendor/dobby/include -Ivendor/dobby/builtin-plugin/SymbolResolver \
+		-install_name @rpath/notepic.dylib \
+		-o $@ $< $(DOBBY_LIBS) -lc++
+	codesign -f -s - --identifier com.bridgeplay.notepic $@
+	@echo "==> Built $@"
+
+helpers-install: $(ICONMAKER) $(APPINFO) $(EPIC_TRAMPOLINE) $(NOTEPIC_DYLIB)
 	$(call install_atomically,$(ICONMAKER),$(SUPPORT_DIR)/iconmaker)
 	$(call install_atomically,$(APPINFO),$(SUPPORT_DIR)/appinfo)
 	$(call install_atomically,$(EPIC_TRAMPOLINE),$(SUPPORT_DIR)/bridgeplay-epic-trampoline)
-	@echo "==> Installed: $(SUPPORT_DIR)/{iconmaker,appinfo,bridgeplay-epic-trampoline}"
+	$(call install_atomically,$(NOTEPIC_DYLIB),$(SUPPORT_DIR)/notepic.dylib)
+	@echo "==> Installed: $(SUPPORT_DIR)/{iconmaker,appinfo,bridgeplay-epic-trampoline,notepic.dylib}"
 
 dobby:
 	@mkdir -p $(DOBBY_DIR)
@@ -709,7 +721,7 @@ bridge:
 fonts:
 	fonts/build.sh
 
-app-payload: $(TARGET) $(OVERLAY_SHIM) $(ICONMAKER) $(APPINFO) $(EPIC_TRAMPOLINE)
+app-payload: $(TARGET) $(OVERLAY_SHIM) $(ICONMAKER) $(APPINFO) $(EPIC_TRAMPOLINE) $(NOTEPIC_DYLIB)
 	@# A signature file deleted from the repo must not ship from the last payload.
 	@test -n "$(APP_PAYLOAD)" && rm -rf "$(APP_PAYLOAD)/signatures"
 	@mkdir -p "$(APP_PAYLOAD)/signatures/macos.arm64"
@@ -721,6 +733,7 @@ app-payload: $(TARGET) $(OVERLAY_SHIM) $(ICONMAKER) $(APPINFO) $(EPIC_TRAMPOLINE
 	cp -f $(ICONMAKER) "$(APP_PAYLOAD)/iconmaker"
 	cp -f $(APPINFO) "$(APP_PAYLOAD)/appinfo"
 	cp -f $(EPIC_TRAMPOLINE) "$(APP_PAYLOAD)/bridgeplay-epic-trampoline"
+	cp -f $(NOTEPIC_DYLIB) "$(APP_PAYLOAD)/notepic.dylib"
 	cp -f dylib/feats/compat_run.sh "$(APP_PAYLOAD)/run"
 	cp -f signatures/macos.arm64/*.json "$(APP_PAYLOAD)/signatures/macos.arm64/"
 	@rm -rf "$(APP_PAYLOAD)/gamefixes" && mkdir -p "$(APP_PAYLOAD)/gamefixes"
@@ -768,6 +781,7 @@ PAYLOAD_SIGN_IDS := \
 	iconmaker:com.bridgeplay.iconmaker \
 	appinfo:com.bridgeplay.appinfo \
 	bridgeplay-epic-trampoline:com.bridgeplay.epic-trampoline \
+	notepic.dylib:com.bridgeplay.notepic \
 	bridge/x86_64-unix-lsteamclient.so:com.bridgeplay.lsteamclient \
 	bridge/aarch64-unix-lsteamclient.so:com.bridgeplay.lsteamclient
 
