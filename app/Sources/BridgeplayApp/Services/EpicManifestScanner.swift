@@ -15,13 +15,13 @@ public enum EpicScannerError: LocalizedError, Sendable {
     public var errorDescription: String? {
         switch self {
         case .installLocationNotFound(let url):
-            return String(localized: "Install location does not exist: \(url.path(percentEncoded: false))")
+            return "Install location does not exist: \(url.path(percentEncoded: false))"
         case .trampolinePayloadMissing:
-            return String(localized: "Universal bridgeplay-epic-trampoline binary not found in app payload or support folder.")
+            return "Universal bridgeplay-epic-trampoline binary not found in app payload or support folder."
         case .manifestCorrupt(let url):
-            return String(localized: "Manifest is corrupt or unreadable at: \(url.path(percentEncoded: false))")
+            return "Manifest is corrupt or unreadable at: \(url.path(percentEncoded: false))"
         case .targetExeNotFound:
-            return String(localized: "Original executable target could not be determined.")
+            return "Original executable target could not be determined."
         }
     }
 }

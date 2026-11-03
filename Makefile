@@ -618,10 +618,20 @@ $(APPINFO): helpers/appinfo.swift
 	swiftc -O -target $(ARCH)-apple-macos$(MIN_VER) -o $@ $<
 	@echo "==> Built $@"
 
-helpers-install: $(ICONMAKER) $(APPINFO)
+EPIC_TRAMPOLINE := $(OUT_DIR)/bridgeplay-epic-trampoline
+
+epic-trampoline: $(EPIC_TRAMPOLINE)
+
+$(EPIC_TRAMPOLINE): helpers/bridgeplay-epic-trampoline.c scripts/build-epic-trampoline.sh
+	@mkdir -p $(OUT_DIR)
+	sh scripts/build-epic-trampoline.sh
+	@echo "==> Built $@"
+
+helpers-install: $(ICONMAKER) $(APPINFO) $(EPIC_TRAMPOLINE)
 	$(call install_atomically,$(ICONMAKER),$(SUPPORT_DIR)/iconmaker)
 	$(call install_atomically,$(APPINFO),$(SUPPORT_DIR)/appinfo)
-	@echo "==> Installed: $(SUPPORT_DIR)/{iconmaker,appinfo}"
+	$(call install_atomically,$(EPIC_TRAMPOLINE),$(SUPPORT_DIR)/bridgeplay-epic-trampoline)
+	@echo "==> Installed: $(SUPPORT_DIR)/{iconmaker,appinfo,bridgeplay-epic-trampoline}"
 
 dobby:
 	@mkdir -p $(DOBBY_DIR)
@@ -699,7 +709,7 @@ bridge:
 fonts:
 	fonts/build.sh
 
-app-payload: $(TARGET) $(OVERLAY_SHIM) $(ICONMAKER) $(APPINFO)
+app-payload: $(TARGET) $(OVERLAY_SHIM) $(ICONMAKER) $(APPINFO) $(EPIC_TRAMPOLINE)
 	@# A signature file deleted from the repo must not ship from the last payload.
 	@test -n "$(APP_PAYLOAD)" && rm -rf "$(APP_PAYLOAD)/signatures"
 	@mkdir -p "$(APP_PAYLOAD)/signatures/macos.arm64"
@@ -710,6 +720,7 @@ app-payload: $(TARGET) $(OVERLAY_SHIM) $(ICONMAKER) $(APPINFO)
 	cp -f $(OVERLAY_SHIM) "$(APP_PAYLOAD)/overlay-shim.dylib"
 	cp -f $(ICONMAKER) "$(APP_PAYLOAD)/iconmaker"
 	cp -f $(APPINFO) "$(APP_PAYLOAD)/appinfo"
+	cp -f $(EPIC_TRAMPOLINE) "$(APP_PAYLOAD)/bridgeplay-epic-trampoline"
 	cp -f dylib/feats/compat_run.sh "$(APP_PAYLOAD)/run"
 	cp -f signatures/macos.arm64/*.json "$(APP_PAYLOAD)/signatures/macos.arm64/"
 	@rm -rf "$(APP_PAYLOAD)/gamefixes" && mkdir -p "$(APP_PAYLOAD)/gamefixes"
@@ -756,6 +767,7 @@ PAYLOAD_SIGN_IDS := \
 	overlay-shim.dylib:com.bridgeplay.overlay-shim \
 	iconmaker:com.bridgeplay.iconmaker \
 	appinfo:com.bridgeplay.appinfo \
+	bridgeplay-epic-trampoline:com.bridgeplay.epic-trampoline \
 	bridge/x86_64-unix-lsteamclient.so:com.bridgeplay.lsteamclient \
 	bridge/aarch64-unix-lsteamclient.so:com.bridgeplay.lsteamclient
 
