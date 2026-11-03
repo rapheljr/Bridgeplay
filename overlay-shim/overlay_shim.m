@@ -23,6 +23,32 @@
 #include <stdlib.h>
 #include <string.h>
 #import <unistd.h>
+#import <crt_externs.h>
+
+static BOOL is_non_game_process(void)
+{
+	const char *prog = getprogname();
+	if (prog != NULL) {
+		if (strstr(prog, "SocialClub") || strstr(prog, "Launcher") ||
+		    strstr(prog, "EpicGames") || strstr(prog, "steamwebhelper") ||
+		    strstr(prog, "wineserver") || strstr(prog, "explorer") ||
+		    strstr(prog, "crashpad")) {
+			return YES;
+		}
+	}
+	int argc = *_NSGetArgc();
+	char **argv = *_NSGetArgv();
+	for (int i = 0; i < argc; i++) {
+		if (argv[i] == NULL) continue;
+		if (strstr(argv[i], "SocialClubHelper.exe") ||
+		    strstr(argv[i], "Launcher.exe") ||
+		    strstr(argv[i], "EpicGamesLauncher") ||
+		    strstr(argv[i], "wineserver")) {
+			return YES;
+		}
+	}
+	return NO;
+}
 
 __attribute__((format(printf, 1, 2)))
 static void shim_log(const char *fmt, ...) {
@@ -1061,6 +1087,11 @@ __attribute__((visibility("default"))) void np_overlay_shim_install(void)
 __attribute__((constructor)) static void overlay_shim_load(void)
 {
 	quitkey_init();
+
+	if (is_non_game_process()) {
+		shim_log("overlay_shim_load: skipping non-game helper process (%s)\n", getprogname());
+		return;
+	}
 
 	Class layer = objc_getClass("CAMetalLayer");
 	if (layer == Nil) {
